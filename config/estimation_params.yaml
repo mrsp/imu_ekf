@@ -1,0 +1,38 @@
+imu_topic_freq: 100
+gravity: 9.80665
+
+useOdom: false
+useVO: false
+useTwist: true
+camera_vo_topic: "pose"
+odom_topic: "odom"
+imu_topic: "imu"
+twist_topic: "twist"
+#Process Noise STDs
+AccBiasSTDx:  0.000382554 #  m/s^2/sqrt(Hz)
+AccBiasSTDy:  0.000382554
+AccBiasSTDz:  0.000382554
+GyroBiasSTDx: 8.67884e-06 
+GyroBiasSTDy: 8.67884e-06 # rad/s/sqrt(Hz)
+GyroBiasSTDz: 8.67884e-06
+AccSTDx: 0.00119907 # 150 micro g/sqrt(Hz) -> m/s^2 
+AccSTDy: 0.00119907
+AccSTDz: 0.00119907
+GyroSTDx: 0.00012 # 0.014deg/s/sqrt(Hz) -> rad/s/sqrt(Hz)
+GyroSTDy: 0.00012
+GyroSTDz: 0.00012
+#Measurement Noise STDs
+#Velocity STD
+KinSTDx: 1.0e-04
+KinSTDy: 1.0e-04
+KinSTDz: 1.0e-04
+KinSTDOrientx: 1.0e-02
+KinSTDOrienty: 1.0e-02
+KinSTDOrientz: 1.0e-02
+#IMU Initial Biases
+biasAX:  0.239618
+biasAY: 0.0751756
+biasAZ: -20.0327
+biasGX:  -0.000817362
+biasGY:  -0.00178242
+biasGZ:  0.000158554
