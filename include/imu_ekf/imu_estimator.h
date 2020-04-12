@@ -47,7 +47,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <imu_ekf/ParamControlConfig.h>
 
-
+#include <imu_ekf/Mahony.h>
 
 
 using namespace Eigen;
@@ -77,18 +77,21 @@ private:
 	geometry_msgs::TwistStamped bodyVel_est_msg, twist_msg;
 	sensor_msgs::Imu  bodyAcc_est_msg;
 
-
+	Mahony* mh;
 	// Helper
 	bool is_connected_;
 
-	
+	double g;
+	Vector3d bias_g, bias_a;
 	IMUEKF* imuEKF;
-
+	Matrix3d Rwb;
+	double Kp, Ki; //Mahony gains
 
 	bool firstrun;
-	
+	int maxImuCalibrationCycles, imuCalibrationCycles;
+	bool imuCalibrated;
 	double biasAX,biasAY,biasAZ,biasGX,biasGY,biasGZ;
-
+    Affine3d T_B_G, T_B_A;
 	 string camera_vo_topic;
 	 string imu_topic;
 	 string odom_topic;

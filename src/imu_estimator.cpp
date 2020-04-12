@@ -32,7 +32,7 @@
 
 #include <iostream>
 #include <algorithm>
-#include "imu_ekf/imu_estimator.h"
+#include <imu_ekf/imu_estimator.h>
 
 
 void imu_estimator::loadparams() {
@@ -62,28 +62,92 @@ void imu_estimator::loadIMUEKFparams()
 	n_p.getParam("biasGY", biasGY);
 	n_p.getParam("biasGZ", biasGZ);
 
-	n_p.getParam("AccSTDx", imuEKF->AccSTDx);
-	n_p.getParam("AccSTDy", imuEKF->AccSTDy);
-	n_p.getParam("AccSTDz", imuEKF->AccSTDz);
+	n_p.getParam("AccSTDx", imuEKF->acc_qx);
+	n_p.getParam("AccSTDy", imuEKF->acc_qy);
+	n_p.getParam("AccSTDz", imuEKF->acc_qz);
 
-	n_p.getParam("GyroSTDx", imuEKF->GyroSTDx);
-	n_p.getParam("GyroSTDy", imuEKF->GyroSTDy);
-	n_p.getParam("GyroSTDz", imuEKF->GyroSTDz);
+	n_p.getParam("GyroSTDx", imuEKF->gyr_qx);
+	n_p.getParam("GyroSTDy", imuEKF->gyr_qy);
+	n_p.getParam("GyroSTDz", imuEKF->gyr_qz);
 
-	n_p.getParam("AccBiasSTDx", imuEKF->AccBiasSTDx);
-	n_p.getParam("AccBiasSTDy", imuEKF->AccBiasSTDy);
-	n_p.getParam("AccBiasSTDz", imuEKF->AccBiasSTDz);
-	n_p.getParam("GyroBiasSTDx", imuEKF->GyroBiasSTDx);
-	n_p.getParam("GyroBiasSTDy", imuEKF->GyroBiasSTDy);
-	n_p.getParam("GyroBiasSTDz", imuEKF->GyroBiasSTDz);
+	n_p.getParam("AccBiasSTDx", imuEKF->accb_qx);
+	n_p.getParam("AccBiasSTDy", imuEKF->accb_qy);
+	n_p.getParam("AccBiasSTDz", imuEKF->accb_qz);
+	n_p.getParam("GyroBiasSTDx", imuEKF->gyrb_qx);
+	n_p.getParam("GyroBiasSTDy", imuEKF->gyrb_qy);
+	n_p.getParam("GyroBiasSTDz", imuEKF->gyrb_qz);
 
-	n_p.getParam("KinSTDx", imuEKF->KinSTDx);
-	n_p.getParam("KinSTDy", imuEKF->KinSTDy);
-	n_p.getParam("KinSTDz", imuEKF->KinSTDz);
-	n_p.getParam("KinSTDOrientx", imuEKF->KinSTDOrientx);
-	n_p.getParam("KinSTDOrienty", imuEKF->KinSTDOrienty);
-	n_p.getParam("KinSTDOrientz", imuEKF->KinSTDOrientz);
+
+	n_p.getParam("velSTDx", imuEKF->vel_px);
+	n_p.getParam("velSTDy", imuEKF->vel_py);
+	n_p.getParam("velSTDz", imuEKF->vel_pz);
+
+	n_p.getParam("KinSTDx", imuEKF->odom_px);
+	n_p.getParam("KinSTDy", imuEKF->odom_py);
+	n_p.getParam("KinSTDz", imuEKF->odom_pz);
+	n_p.getParam("KinSTDOrientx", imuEKF->odom_ax);
+	n_p.getParam("KinSTDOrienty", imuEKF->odom_ay);
+	n_p.getParam("KinSTDOrientz", imuEKF->odom_az);
+
+	n_p.getParam("VOSTDx", imuEKF->vodom_px);
+	n_p.getParam("VOSTDy", imuEKF->vodom_py);
+	n_p.getParam("VOSTDz", imuEKF->vodom_pz);
+	n_p.getParam("VOSTDOrientx", imuEKF->vodom_ax);
+	n_p.getParam("VOSTDOrienty", imuEKF->vodom_ay);
+	n_p.getParam("VOSTDOrientz", imuEKF->vodom_az);
+
 	n_p.getParam("gravity", imuEKF->ghat);
+	n_p.getParam("gravity", g);
+
+
+    n_p.param<bool>("calibrateIMUbiases", imuCalibrated, true);
+    n_p.param<int>("maxImuCalibrationCycles", maxImuCalibrationCycles, 500);
+	if(imuCalibrated)
+	{
+		//Mahony Filter for Attitude Estimation
+		n_p.param<double>("Mahony_Kp", Kp, 0.25);
+		n_p.param<double>("Mahony_Ki", Ki, 0.0);
+		mh = new Mahony(freq, Kp, Ki);
+	}
+    std::vector<double> affine_list;
+
+    n_p.getParam("T_B_A", affine_list);
+    T_B_A(0, 0) = affine_list[0];
+    T_B_A(0, 1) = affine_list[1];
+    T_B_A(0, 2) = affine_list[2];
+    T_B_A(0, 3) = affine_list[3];
+    T_B_A(1, 0) = affine_list[4];
+    T_B_A(1, 1) = affine_list[5];
+    T_B_A(1, 2) = affine_list[6];
+    T_B_A(1, 3) = affine_list[7];
+    T_B_A(2, 0) = affine_list[8];
+    T_B_A(2, 1) = affine_list[9];
+    T_B_A(2, 2) = affine_list[10];
+    T_B_A(2, 3) = affine_list[11];
+    T_B_A(3, 0) = affine_list[12];
+    T_B_A(3, 1) = affine_list[13];
+    T_B_A(3, 2) = affine_list[14];
+    T_B_A(3, 3) = affine_list[15];
+
+    n_p.getParam("T_B_G", affine_list);
+    T_B_G(0, 0) = affine_list[0];
+    T_B_G(0, 1) = affine_list[1];
+    T_B_G(0, 2) = affine_list[2];
+    T_B_G(0, 3) = affine_list[3];
+    T_B_G(1, 0) = affine_list[4];
+    T_B_G(1, 1) = affine_list[5];
+    T_B_G(1, 2) = affine_list[6];
+    T_B_G(1, 3) = affine_list[7];
+    T_B_G(2, 0) = affine_list[8];
+    T_B_G(2, 1) = affine_list[9];
+    T_B_G(2, 2) = affine_list[10];
+    T_B_G(2, 3) = affine_list[11];
+    T_B_G(3, 0) = affine_list[12];
+    T_B_G(3, 1) = affine_list[13];
+    T_B_G(3, 2) = affine_list[14];
+    T_B_G(3, 3) = affine_list[15];
+
+	ROS_INFO_STREAM("IMU EKF Parameters Loaded");
 
 }
 
@@ -179,7 +243,7 @@ bool imu_estimator::connect(const ros::NodeHandle nh) {
 
 	is_connected_ = true;
 
-	ROS_INFO_STREAM("IMU Estimator Initialized");
+	ROS_INFO_STREAM("Estimator Initialized");
 
 	return true;
 }
@@ -218,7 +282,12 @@ void imu_estimator::init() {
 	odom_inc = false;
 	twist_inc = false;
 
-
+    imuCalibrationCycles = 0;
+	T_B_A = Affine3d::Identity();
+	T_B_G = Affine3d::Identity();
+	bias_a = Vector3d::Zero();
+	bias_g = Vector3d::Zero();
+	Rwb = Matrix3d::Identity();
 
 }
 
@@ -231,45 +300,69 @@ void imu_estimator::reconfigureCB(imu_ekf::ParamControlConfig& config, uint32_t 
       imuEKF->x(13) = config.biasAY;
       imuEKF->x(14) = config.biasAZ;
 
-      imuEKF->AccBiasSTDx = config.AccBiasSTDx;
-      imuEKF->AccBiasSTDy = config.AccBiasSTDy;
-      imuEKF->AccBiasSTDz = config.AccBiasSTDz;
-      imuEKF->GyroBiasSTDz = config.GyroBiasSTDz;
-      imuEKF->GyroBiasSTDy = config.GyroBiasSTDy;
-      imuEKF->GyroBiasSTDx = config.GyroBiasSTDx;
+      imuEKF->accb_qx = config.AccBiasSTDx;
+      imuEKF->accb_qy = config.AccBiasSTDy;
+      imuEKF->accb_qz = config.AccBiasSTDz;
+      imuEKF->gyrb_qx = config.GyroBiasSTDz;
+      imuEKF->gyrb_qy = config.GyroBiasSTDy;
+      imuEKF->gyrb_qz = config.GyroBiasSTDx;
 
-      imuEKF->AccSTDx = config.AccSTDx;
-      imuEKF->AccSTDy = config.AccSTDy;
-      imuEKF->AccSTDz = config.AccSTDz;
-
-
-      imuEKF->GyroSTDx = config.GyroSTDx;
-      imuEKF->GyroSTDy = config.GyroSTDy;
-      imuEKF->GyroSTDz = config.GyroSTDz;
-
-      imuEKF->KinSTDx = config.KinSTDx; 
-      imuEKF->KinSTDy = config.KinSTDy; 
-      imuEKF->KinSTDz = config.KinSTDz; 
-
-      imuEKF->KinSTDOrientx = config.KinSTDOrientx; 
-      imuEKF->KinSTDOrienty = config.KinSTDOrienty; 
-      imuEKF->KinSTDOrientz = config.KinSTDOrientz; 
+      imuEKF->acc_qx = config.AccSTDx;
+      imuEKF->acc_qy = config.AccSTDy;
+      imuEKF->acc_qz = config.AccSTDz;
 
 
+      imuEKF->gyr_qx = config.GyroSTDx;
+      imuEKF->gyr_qy = config.GyroSTDy;
+      imuEKF->gyr_qz = config.GyroSTDz;
 
+      imuEKF->odom_px = config.KinSTDx; 
+      imuEKF->odom_py = config.KinSTDy; 
+      imuEKF->odom_pz = config.KinSTDz; 
+
+      imuEKF->odom_ax = config.KinSTDOrientx; 
+      imuEKF->odom_ay = config.KinSTDOrienty; 
+      imuEKF->odom_az = config.KinSTDOrientz; 
 }
 
 void imu_estimator::run() {
+	static ros::Rate rate(2.0*freq);  //ROS Node Loop Rate
 	while (ros::ok()) {
-		predictWithImu = false;
-		static ros::Rate rate(freq);  //ROS Node Loop Rate
+		if(imu_inc)
+		{
+            if (imuCalibrated)
+            {
+                mh->updateIMU(T_B_G.linear() * (Vector3d(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z)),
+                              T_B_A.linear() * (Vector3d(imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z)));
+                Rwb = mh->getR();
+           
+		    
+				if(imuCalibrationCycles < maxImuCalibrationCycles)
+				{
+					bias_g += T_B_G.linear() * Vector3d(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z);
+					bias_a += T_B_A.linear() * Vector3d(imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z) -  Rwb.transpose() * Vector3d(0,0,g); 
+					imuCalibrationCycles++;
+					continue;
+				}
+
+					biasAX = bias_a(0)/imuCalibrationCycles;
+					biasAY = bias_a(1)/imuCalibrationCycles;
+					biasAZ = bias_a(2)/imuCalibrationCycles;
+					biasGX = bias_g(0)/imuCalibrationCycles;
+					biasGY = bias_g(1)/imuCalibrationCycles;
+					biasGZ = bias_g(2)/imuCalibrationCycles;
+					imuCalibrated = false;
+					std::cout<<"Calibration finished at "<<imuCalibrationCycles<<std::endl;
+					std::cout<<"Gyro biases "<<biasGX<<" "<<biasGY<<" "<<biasGZ<<std::endl;
+					std::cout<<"Acc biases "<<biasAX<<" "<<biasAY<<" "<<biasAZ<<std::endl;
+				
+			}
 
 
-		estimateWithIMUEKF();
-
-		//Publish Data
-		publishBodyEstimates();
-
+			estimateWithIMUEKF();
+			//Publish Data
+			publishBodyEstimates();
+		}
 		ros::spinOnce();
 		rate.sleep();
 	}
@@ -279,6 +372,7 @@ void imu_estimator::run() {
 
 void imu_estimator::estimateWithIMUEKF()
 {
+		predictWithImu = false;
 		//Initialize the IMU EKF state
 		if (imuEKF->firstrun) {
 			imuEKF->setdt(1.0/freq);
@@ -296,10 +390,10 @@ void imu_estimator::estimateWithIMUEKF()
 		
 		//Predict Step
 		//Predict with the IMU gyro and acceleration
-		if(imu_inc && !predictWithImu &&!imuEKF->firstrun){
+		if( !predictWithImu &&!imuEKF->firstrun){
 			//std::cout<<"Imu "<<std::endl;
-			imuEKF->predict(Vector3d(imu_msg.angular_velocity.x,imu_msg.angular_velocity.y,imu_msg.angular_velocity.z),
-			Vector3d(imu_msg.linear_acceleration.x,imu_msg.linear_acceleration.y,imu_msg.linear_acceleration.z));
+		    imuEKF->predict(T_B_G.linear() * Vector3d(imu_msg.angular_velocity.x, imu_msg.angular_velocity.y, imu_msg.angular_velocity.z),
+                        T_B_A.linear() * Vector3d(imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y, imu_msg.linear_acceleration.z));
 			imu_inc = false;
 			predictWithImu = true;
 		}
@@ -321,7 +415,7 @@ void imu_estimator::estimateWithIMUEKF()
 			if(vo_inc && predictWithImu)
 			{
 
-				imuEKF->updatewithVO(Vector3d(vo_msg.pose.position.x,vo_msg.pose.position.y,vo_msg.pose.position.z),
+				imuEKF->updateWithVO(Vector3d(vo_msg.pose.position.x,vo_msg.pose.position.y,vo_msg.pose.position.z),
 				Quaterniond(vo_msg.pose.orientation.w,vo_msg.pose.orientation.x,vo_msg.pose.orientation.y,vo_msg.pose.orientation.z));
 				vo_inc = false;
 			}
@@ -330,7 +424,7 @@ void imu_estimator::estimateWithIMUEKF()
 		{		
 			if(twist_inc && predictWithImu)
 			{
-				imuEKF->updateWithTwist(Vector3d(twist_msg.twist.linear.x,twist_msg.twist.linear.y,twist_msg.twist.linear.z),
+				imuEKF->updateWithTwistRotation(Vector3d(twist_msg.twist.linear.x,twist_msg.twist.linear.y,twist_msg.twist.linear.z),
 				Quaterniond(imu_msg.orientation.w,imu_msg.orientation.x,imu_msg.orientation.y,imu_msg.orientation.z));
 				twist_inc = false;
 			}
@@ -358,10 +452,10 @@ void imu_estimator::publishBodyEstimates() {
 	bodyPose_est_msg.pose.position.x = imuEKF->rX;
 	bodyPose_est_msg.pose.position.y = imuEKF->rY;
 	bodyPose_est_msg.pose.position.z = imuEKF->rZ;
-	bodyPose_est_msg.pose.orientation.x = imuEKF->qib_.x();
-	bodyPose_est_msg.pose.orientation.y = imuEKF->qib_.y();
-	bodyPose_est_msg.pose.orientation.z = imuEKF->qib_.z();
-	bodyPose_est_msg.pose.orientation.w = imuEKF->qib_.w();
+	bodyPose_est_msg.pose.orientation.x = imuEKF->qib.x();
+	bodyPose_est_msg.pose.orientation.y = imuEKF->qib.y();
+	bodyPose_est_msg.pose.orientation.z = imuEKF->qib.z();
+	bodyPose_est_msg.pose.orientation.w = imuEKF->qib.w();
 	bodyPose_est_pub.publish(bodyPose_est_msg);
 
 	bodyVel_est_msg.header.stamp = ros::Time::now();
@@ -400,16 +494,16 @@ void imu_estimator::publishBodyEstimates() {
 void imu_estimator::advertise() {
 
 	bodyPose_est_pub = n.advertise<geometry_msgs::PoseStamped>(
-	"/imu_ekf/body/pose", 1000);
+	"imu_ekf/body/pose", 1000);
 
 
 	bodyVel_est_pub = n.advertise<geometry_msgs::TwistStamped>(
-	"/imu_ekf/body/vel", 1000);
+	"imu_ekf/body/vel", 1000);
 
 	bodyAcc_est_pub = n.advertise<sensor_msgs::Imu>(
-	"/imu_ekf/body/acc", 1000);
+	"imu_ekf/body/acc", 1000);
 
-	odom_est_pub = n.advertise<nav_msgs::Odometry>("/imu_ekf/odom",1000);		
+	odom_est_pub = n.advertise<nav_msgs::Odometry>("imu_ekf/odom",1000);		
 }
 
 
